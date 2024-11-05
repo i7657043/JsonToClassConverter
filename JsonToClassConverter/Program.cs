@@ -8,78 +8,30 @@ internal class Program
         {
             FirstName = "hi",
             SecondName = "hello",
-            NonName = null,
             Age = 21,
             Male = false,
             Children = new List<Child>
             {
                 new Child
                 {
-                    NonName = null,
                     ChildName = "yoyo",
                     ChildOfChild = new ChildOfChild
                     {
-                        ChildOfChildName = "nest",
+                        ChildOfChildName = "deepNestedChild",
                         Age = 21,
                         Dob = DateTime.Now,
                         Male = true
-                    },
-                    Children = new List<Child>
-                    {
-                        new Child
-                        {
-                            NonName = null,
-                            ChildName = "nest 1",
-                            ChildOfChild = new ChildOfChild
-                            {
-                                ChildOfChildName = "nest 1",
-                                Age = 21,
-                                Dob = DateTime.Now,
-                                Male = true
-                            }
-                        },
-                        new Child
-                        {
-                            NonName = null,
-                            ChildName = "anotherChild",
-                            Age = 21,
-                            Dob = DateTime.Now,
-                            Children = new List<Child>
-                            {
-                                new Child
-                                {
-                                    NonName = null,
-                                    ChildName = "nest 2",
-                                    ChildOfChild = new ChildOfChild
-                                    {
-                                        ChildOfChildName = "nest 2",
-                                        Age = 21,
-                                        Dob = DateTime.Now,
-                                        Male = true
-                                    }
-                                },
-                                new Child
-                                {
-                                    NonName = null,
-                                    ChildName = "anotherChild",
-                                    Age = 21,
-                                    Dob = DateTime.Now
-                                }
-                            }
-                        }
                     }
                 },
                 new Child
                 {
-                    NonName = null,
-                    ChildName = "nest",
+                    ChildName = "anotherChild",
                     Age = 21,
                     Dob = DateTime.Now
                 }
             },
             Child = new Child
             {
-                NonName = null,
                 ChildName = "extra",
                 ChildOfChild = new ChildOfChild
                 {
@@ -127,11 +79,6 @@ internal class Program
                     model.Fields.Add(new Field(property.Name, fieldType));
                     break;
 
-                case JsonValueKind.Null:
-                    // Add a nullable field type for null values
-                    model.Fields.Add(new Field(property.Name, typeof(Nullable<>)));
-                    break;
-
                 default:
                     if (IsValueType(property.Value.ValueKind))
                     {
@@ -147,38 +94,34 @@ internal class Program
     private static ArrayField ParseArray(string name, JsonElement arrayElement)
     {
         var arrayField = new ArrayField(name);
+        JsonElement firstItem = arrayElement[0];
 
-        foreach (var item in arrayElement.EnumerateArray())
+        if (IsValueType(firstItem.ValueKind))
         {
-            if (IsValueType(item.ValueKind))
-            {
-                arrayField.PrimitiveValues.Add(item.ToString());
-            }
-            else if (item.ValueKind == JsonValueKind.Object)
-            {
-                arrayField.ObjectValues.Add(ParseJson(item));
-            }
+            arrayField.ElementType = GetValueType(firstItem.ValueKind);
+        }
+        else if (firstItem.ValueKind == JsonValueKind.Object)
+        {
+            arrayField.ElementType = typeof(DocumentModel);
         }
 
         return arrayField;
     }
 
     private static bool IsValueType(JsonValueKind valueKind) =>
-     valueKind == JsonValueKind.False ||
-     valueKind == JsonValueKind.True ||
-     valueKind == JsonValueKind.String ||
-     valueKind == JsonValueKind.Number ||
-     valueKind == JsonValueKind.Null;
+        valueKind == JsonValueKind.False ||
+        valueKind == JsonValueKind.True ||
+        valueKind == JsonValueKind.String ||
+        valueKind == JsonValueKind.Number;
 
     private static Type GetValueType(JsonValueKind valueKind, string? stringValue = null) =>
-        valueKind switch
-        {
-            JsonValueKind.True or JsonValueKind.False => typeof(bool),
-            JsonValueKind.String => DetectStringType(stringValue),
-            JsonValueKind.Number => typeof(double),
-            JsonValueKind.Null => typeof(Nullable<>), // Nullable type for null values
-            _ => throw new Exception($"Unsupported JSON value type: {valueKind}")
-        };
+    valueKind switch
+    {
+        JsonValueKind.True or JsonValueKind.False => typeof(bool),
+        JsonValueKind.String => DetectStringType(stringValue),
+        JsonValueKind.Number => typeof(double),
+        _ => throw new Exception($"Unsupported JSON value type: {valueKind}")
+    };
 
     private static Type DetectStringType(string? value) => DateTime.TryParse(value, out _)
         ? typeof(DateTime)
@@ -196,15 +139,7 @@ internal class Program
 
         foreach (var array in model.Arrays)
         {
-            Console.WriteLine($"{indentStr}  ArrayField: {array.Name}");
-            foreach (var primitiveValue in array.PrimitiveValues)
-            {
-                Console.WriteLine($"{indentStr}    PrimitiveValue: {primitiveValue}");
-            }
-            foreach (var obj in array.ObjectValues)
-            {
-                PrintModel(obj, indent + 4);
-            }
+            Console.WriteLine($"{indentStr}  ArrayField: {array.Name} (Array of {array.ElementType.Name})");
         }
 
         foreach (var child in model.ChildObjects)
@@ -252,8 +187,7 @@ internal class Program
         }
 
         public string Name { get; set; }
-        public List<string> PrimitiveValues { get; set; } = new List<string>();
-        public List<DocumentModel> ObjectValues { get; set; } = new List<DocumentModel>();
+        public Type ElementType { get; set; } = typeof(object);
     }
 
     // Sample data classes
@@ -261,7 +195,6 @@ internal class Program
     {
         public string FirstName { get; set; }
         public string SecondName { get; set; }
-        public string? NonName { get; set; } = null;
         public int Age { get; set; }
         public bool Male { get; set; }
         public DateTime Dob { get; set; }
@@ -272,11 +205,9 @@ internal class Program
     public class Child
     {
         public string ChildName { get; set; }
-        public string? NonName { get; set; } = null;
         public int Age { get; set; }
         public bool Male { get; set; }
         public DateTime Dob { get; set; }
-        public List<Child> Children { get; set; }
         public ChildOfChild ChildOfChild { get; set; }
     }
 

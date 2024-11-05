@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 internal class Program
 {
@@ -10,36 +8,96 @@ internal class Program
         {
             FirstName = "hi",
             SecondName = "hello",
+            NonName = null,
+            Age = 21,
+            Male = false,
             Children = new List<Child>
             {
                 new Child
                 {
+                    NonName = null,
                     ChildName = "yoyo",
                     ChildOfChild = new ChildOfChild
                     {
-                        ChildOfChildName = "deepNestedChild"
+                        ChildOfChildName = "nest",
+                        Age = 21,
+                        Dob = DateTime.Now,
+                        Male = true
+                    },
+                    Children = new List<Child>
+                    {
+                        new Child
+                        {
+                            NonName = null,
+                            ChildName = "nest 1",
+                            ChildOfChild = new ChildOfChild
+                            {
+                                ChildOfChildName = "nest 1",
+                                Age = 21,
+                                Dob = DateTime.Now,
+                                Male = true
+                            }
+                        },
+                        new Child
+                        {
+                            NonName = null,
+                            ChildName = "anotherChild",
+                            Age = 21,
+                            Dob = DateTime.Now,
+                            Children = new List<Child>
+                            {
+                                new Child
+                                {
+                                    NonName = null,
+                                    ChildName = "nest 2",
+                                    ChildOfChild = new ChildOfChild
+                                    {
+                                        ChildOfChildName = "nest 2",
+                                        Age = 21,
+                                        Dob = DateTime.Now,
+                                        Male = true
+                                    }
+                                },
+                                new Child
+                                {
+                                    NonName = null,
+                                    ChildName = "anotherChild",
+                                    Age = 21,
+                                    Dob = DateTime.Now
+                                }
+                            }
+                        }
                     }
                 },
                 new Child
                 {
-                    ChildName = "anotherChild"
+                    NonName = null,
+                    ChildName = "nest",
+                    Age = 21,
+                    Dob = DateTime.Now
                 }
             },
             Child = new Child
             {
+                NonName = null,
                 ChildName = "extra",
                 ChildOfChild = new ChildOfChild
                 {
                     ChildOfChildName = "extra child of child"
-                }
+                },
+                Age = 21,
+                Dob = DateTime.Now,
+                Male = true
             }
         });
 
-        DocumentModel model = ParseJson(JsonDocument.Parse(json).RootElement);
-        PrintModel(model);
+        DocumentModel model = GetDocumentModel(json);
 
-        Console.ReadLine();
+        PrintModel(model);
     }
+
+    private static DocumentModel GetDocumentModel(string json)
+        => ParseJson(JsonDocument.Parse(json).RootElement);
 
     private static DocumentModel ParseJson(JsonElement jsonElement)
     {
@@ -50,15 +108,28 @@ internal class Program
             switch (property.Value.ValueKind)
             {
                 case JsonValueKind.Object:
-                    var childObject = new ChildObject(property.Name);
-                    childObject.Fields = ParseJson(property.Value).Fields;
-                    childObject.ChildObjects = ParseJson(property.Value).ChildObjects;
+                    var childObject = new ChildObject(property.Name)
+                    {
+                        Fields = ParseJson(property.Value).Fields,
+                        ChildObjects = ParseJson(property.Value).ChildObjects,
+                        Arrays = ParseJson(property.Value).Arrays
+                    };
                     model.ChildObjects.Add(childObject);
                     break;
 
                 case JsonValueKind.Array:
                     var arrayField = ParseArray(property.Name, property.Value);
                     model.Arrays.Add(arrayField);
+                    break;
+
+                case JsonValueKind.String:
+                    var fieldType = GetValueType(property.Value.ValueKind, property.Value.GetString());
+                    model.Fields.Add(new Field(property.Name, fieldType));
+                    break;
+
+                case JsonValueKind.Null:
+                    // Add a nullable field type for null values
+                    model.Fields.Add(new Field(property.Name, typeof(Nullable<>)));
                     break;
 
                 default:
@@ -93,19 +164,25 @@ internal class Program
     }
 
     private static bool IsValueType(JsonValueKind valueKind) =>
-        valueKind == JsonValueKind.False ||
-        valueKind == JsonValueKind.True ||
-        valueKind == JsonValueKind.String ||
-        valueKind == JsonValueKind.Number;
+     valueKind == JsonValueKind.False ||
+     valueKind == JsonValueKind.True ||
+     valueKind == JsonValueKind.String ||
+     valueKind == JsonValueKind.Number ||
+     valueKind == JsonValueKind.Null;
 
-    private static Type GetValueType(JsonValueKind valueKind) =>
+    private static Type GetValueType(JsonValueKind valueKind, string? stringValue = null) =>
         valueKind switch
         {
             JsonValueKind.True or JsonValueKind.False => typeof(bool),
-            JsonValueKind.String => typeof(string),
+            JsonValueKind.String => DetectStringType(stringValue),
             JsonValueKind.Number => typeof(double),
+            JsonValueKind.Null => typeof(Nullable<>), // Nullable type for null values
             _ => throw new Exception($"Unsupported JSON value type: {valueKind}")
         };
+
+    private static Type DetectStringType(string? value) => DateTime.TryParse(value, out _)
+        ? typeof(DateTime)
+        : typeof(string);
 
     private static void PrintModel(DocumentModel model, int indent = 0)
     {
@@ -184,6 +261,10 @@ internal class Program
     {
         public string FirstName { get; set; }
         public string SecondName { get; set; }
+        public string? NonName { get; set; } = null;
+        public int Age { get; set; }
+        public bool Male { get; set; }
+        public DateTime Dob { get; set; }
         public List<Child> Children { get; set; }
         public Child Child { get; set; }
     }
@@ -191,11 +272,19 @@ internal class Program
     public class Child
     {
         public string ChildName { get; set; }
+        public string? NonName { get; set; } = null;
+        public int Age { get; set; }
+        public bool Male { get; set; }
+        public DateTime Dob { get; set; }
+        public List<Child> Children { get; set; }
         public ChildOfChild ChildOfChild { get; set; }
     }
 
     public class ChildOfChild
     {
+        public int Age { get; set; }
+        public bool Male { get; set; }
+        public DateTime Dob { get; set; }
         public string ChildOfChildName { get; set; }
     }
 }

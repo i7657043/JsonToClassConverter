@@ -4,86 +4,96 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        string json = JsonSerializer.Serialize(new Person
+        string json = JsonSerializer.Serialize(new Person()
         {
-            FirstName = "hi",
-            SecondName = "hello",
-            Age = 21,
-            Male = false,
-            Children = new List<Child>
+            FirstName = "fname",
+            Jobs = new string[] { "job1", "job2" },
+            //Dob = DateTime.Now,
+            CarProps = new List<Car>()
             {
-                new Child
+                new Car()
                 {
-                    ChildName = "yoyo",
-                    ChildOfChild = new ChildOfChild
+                    Brand = "child vw",
+                    Owners = new List<Owner>
                     {
-                        ChildOfChildName = "deepNestedChild",
-                        Age = 21,
-                        Dob = DateTime.Now,
-                        Male = true
-                    }
-                },
-                new Child
-                {
-                    ChildName = "anotherChild",
-                    Age = 21,
-                    Dob = DateTime.Now
+                        new Owner()
+                        {
+                            Details = "detailshere",
+                            Credentials = new List<Creds>()
+                            {
+                                new Creds(){ TheText = "texthere" }
+                            }
+                        }
+                    },
+                    VehicleInfo = new Info { Seats = 2 }
                 }
-            },
-            Child = new Child
-            {
-                ChildName = "extra",
-                ChildOfChild = new ChildOfChild
-                {
-                    ChildOfChildName = "extra child of child"
-                },
-                Age = 21,
-                Dob = DateTime.Now,
-                Male = true
             }
+            //});
         });
 
-        DocumentModel model = GetDocumentModel(json);
+        JsonClass model = GetDocumentModel(json);
+        model.Name = "Outer";
 
-        PrintModel(model);
     }
-
-    private static DocumentModel GetDocumentModel(string json)
+    private static JsonClass GetDocumentModel(string json)
         => ParseJson(JsonDocument.Parse(json).RootElement);
 
-    private static DocumentModel ParseJson(JsonElement jsonElement)
+    private static JsonClass ParseJson(JsonElement jsonElement)
     {
-        DocumentModel model = new DocumentModel();
+        JsonElement.ObjectEnumerator obj = jsonElement.EnumerateObject();
 
-        foreach (JsonProperty property in jsonElement.EnumerateObject())
+        JsonClass model = ProcessJsonProps(new JsonClass(), obj);
+
+        return model;
+    }
+
+    private static JsonClass ParseArray(JsonElement arrayElement)
+    {
+        JsonElement.ObjectEnumerator obj = arrayElement.EnumerateArray().First().EnumerateObject();
+
+        JsonClass model = ProcessJsonProps(new JsonClass(), obj);
+
+        return model;
+    }
+
+    private static JsonClass ProcessJsonProps(JsonClass model, JsonElement.ObjectEnumerator obj)
+    {
+        foreach (JsonProperty property in obj)
         {
             switch (property.Value.ValueKind)
             {
                 case JsonValueKind.Object:
-                    var childObject = new ChildObject(property.Name)
-                    {
-                        Fields = ParseJson(property.Value).Fields,
-                        ChildObjects = ParseJson(property.Value).ChildObjects,
-                        Arrays = ParseJson(property.Value).Arrays
-                    };
-                    model.ChildObjects.Add(childObject);
+                    JsonClass childObj = ParseJson(property.Value);
+                    childObj.Name = property.Name;
+                    model.Children.Add(childObj);
                     break;
 
                 case JsonValueKind.Array:
-                    var arrayField = ParseArray(property.Name, property.Value);
-                    model.Arrays.Add(arrayField);
+                    if (IsEmptyArray(property))
+                        break;
+                    else if (IsValueTypeArray(property))
+                    {
+                        Field field = new Field(property.Name, GetValueType(property.Value.EnumerateArray().First().ValueKind)) { IsArray = true };
+                        model.Fields.Add(field);
+                        break;
+                    }
+                    JsonClass childArray = ParseArray(property.Value);
+                    childArray.Name = property.Name;
+                    childArray.IsArray = true;
+                    model.Children.Add(childArray);
                     break;
 
                 case JsonValueKind.String:
-                    var fieldType = GetValueType(property.Value.ValueKind, property.Value.GetString());
+                    Type fieldType = GetValueType(property.Value.ValueKind, property.Value.GetString());
                     model.Fields.Add(new Field(property.Name, fieldType));
                     break;
 
-                default:
-                    if (IsValueType(property.Value.ValueKind))
-                    {
-                        model.Fields.Add(new Field(property.Name, GetValueType(property.Value.ValueKind)));
-                    }
+                case JsonValueKind.Null:
+                    model.Fields.Add(new Field(property.Name, typeof(Nullable<>)));
+                    break;
+
+                case JsonValueKind.Number:
+                    model.Fields.Add(new Field(property.Name, GetValueType(property.Value.ValueKind)));
                     break;
             }
         }
@@ -91,80 +101,44 @@ internal class Program
         return model;
     }
 
-    private static ArrayField ParseArray(string name, JsonElement arrayElement)
+    private static bool IsValueTypeArray(JsonProperty property)
     {
-        var arrayField = new ArrayField(name);
-        JsonElement firstItem = arrayElement[0];
+        return !property.Value.ToString().Contains("{");
+    }
 
-        if (IsValueType(firstItem.ValueKind))
-        {
-            arrayField.ElementType = GetValueType(firstItem.ValueKind);
-        }
-        else if (firstItem.ValueKind == JsonValueKind.Object)
-        {
-            arrayField.ElementType = typeof(DocumentModel);
-        }
-
-        return arrayField;
+    private static bool IsEmptyArray(JsonProperty property)
+    {
+        return property.Value.ToString() == "[]";
     }
 
     private static bool IsValueType(JsonValueKind valueKind) =>
-        valueKind == JsonValueKind.False ||
-        valueKind == JsonValueKind.True ||
-        valueKind == JsonValueKind.String ||
-        valueKind == JsonValueKind.Number;
+     valueKind == JsonValueKind.False ||
+     valueKind == JsonValueKind.True ||
+     valueKind == JsonValueKind.String ||
+     valueKind == JsonValueKind.Number ||
+     valueKind == JsonValueKind.Null;
 
     private static Type GetValueType(JsonValueKind valueKind, string? stringValue = null) =>
-    valueKind switch
-    {
-        JsonValueKind.True or JsonValueKind.False => typeof(bool),
-        JsonValueKind.String => DetectStringType(stringValue),
-        JsonValueKind.Number => typeof(double),
-        _ => throw new Exception($"Unsupported JSON value type: {valueKind}")
-    };
-
-    private static Type DetectStringType(string? value) => DateTime.TryParse(value, out _)
-        ? typeof(DateTime)
-        : typeof(string);
-
-    private static void PrintModel(DocumentModel model, int indent = 0)
-    {
-        string indentStr = new string(' ', indent);
-        Console.WriteLine($"{indentStr}DocumentModel:");
-
-        foreach (var field in model.Fields)
+        valueKind switch
         {
-            Console.WriteLine($"{indentStr}  Field: {field.Name} ({field.Type.Name})");
-        }
+            JsonValueKind.True or JsonValueKind.False => typeof(bool),
+            JsonValueKind.String =>
+                DateTime.TryParse(stringValue, out _)
+                    ? typeof(DateTime)
+                    : typeof(string),
+            JsonValueKind.Number => typeof(double),
+            JsonValueKind.Null => typeof(Nullable<>),
+            _ => throw new Exception($"Unsupported JSON value type: {valueKind}")
+        };
 
-        foreach (var array in model.Arrays)
-        {
-            Console.WriteLine($"{indentStr}  ArrayField: {array.Name} (Array of {array.ElementType.Name})");
-        }
 
-        foreach (var child in model.ChildObjects)
-        {
-            Console.WriteLine($"{indentStr}  ChildObject: {child.Name}");
-            PrintModel(new DocumentModel { Fields = child.Fields, ChildObjects = child.ChildObjects, Arrays = child.Arrays }, indent + 4);
-        }
-    }
 
-    // Model classes
-    public class DocumentModel
+    public class JsonClass
     {
+        public string Name { get; set; } = string.Empty;
         public List<Field> Fields { get; set; } = new List<Field>();
-        public List<ChildObject> ChildObjects { get; set; } = new List<ChildObject>();
-        public List<ArrayField> Arrays { get; set; } = new List<ArrayField>();
-    }
-
-    public class ChildObject : DocumentModel
-    {
-        public ChildObject(string name)
-        {
-            Name = name;
-        }
-
-        public string Name { get; set; }
+        public List<JsonClass> Children { get; set; } = new List<JsonClass>();
+        public bool IsArray { get; set; }
     }
 
     public class Field
@@ -177,45 +151,41 @@ internal class Program
 
         public string Name { get; set; }
         public Type Type { get; set; }
+        public bool IsArray { get; set; }
     }
 
-    public class ArrayField
-    {
-        public ArrayField(string name)
-        {
-            Name = name;
-        }
 
-        public string Name { get; set; }
-        public Type ElementType { get; set; } = typeof(object);
-    }
 
-    // Sample data classes
+
+
     public class Person
     {
         public string FirstName { get; set; }
-        public string SecondName { get; set; }
-        public int Age { get; set; }
-        public bool Male { get; set; }
-        public DateTime Dob { get; set; }
-        public List<Child> Children { get; set; }
-        public Child Child { get; set; }
+        public List<Car> CarProps { get; set; } = new List<Car>();
+        public string[] Jobs { get; set; }
+
     }
 
-    public class Child
+    public class Car
     {
-        public string ChildName { get; set; }
-        public int Age { get; set; }
-        public bool Male { get; set; }
-        public DateTime Dob { get; set; }
-        public ChildOfChild ChildOfChild { get; set; }
+        public string Brand { get; set; }
+        public Info VehicleInfo { get; set; }
+        public List<Owner> Owners { get; set; }
     }
 
-    public class ChildOfChild
+    public class Info
     {
-        public int Age { get; set; }
-        public bool Male { get; set; }
-        public DateTime Dob { get; set; }
-        public string ChildOfChildName { get; set; }
+        public int Seats { get; set; }
+    }
+
+    public class Owner
+    {
+        public string Details { get; set; }
+        public List<Creds> Credentials { get; set; }
+    }
+
+    public class Creds
+    {
+        public string TheText { get; set; }
     }
 }

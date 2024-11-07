@@ -1,60 +1,125 @@
 ﻿using System.Text.Json;
 
 internal class Program
-{
+{    
     private static void Main(string[] args)
     {
         string json = JsonSerializer.Serialize(new Person()
         {
+            CarProp = new Car()
+            {
+                Brand = "vw",
+                Age = 21,
+                Owners = new List<Owner>()
+                {
+                    new Owner()
+                    {
+                        Details = "new deets",
+                        Credentials = new List<Creds>()
+                        {
+                            new Creds()
+                            {
+                                TheText = "credstext"
+                            }
+                        }
+                    }
+                },
+                VehicleInfo = new Info()
+                {
+                    Seats = 2
+                }
+            },
+            Jobs = new string[] { "job1" },
             FirstName = "fname",
-            Jobs = new string[] { "job1", "job2" },
-            //Dob = DateTime.Now,
-            CarProps = new List<Car>()
+            CarProps = new List<Car>
             {
                 new Car()
                 {
-                    Brand = "child vw",
-                    Owners = new List<Owner>
-                    {
-                        new Owner()
-                        {
-                            Details = "detailshere",
-                            Credentials = new List<Creds>()
-                            {
-                                new Creds(){ TheText = "texthere" }
-                            }
-                        }
-                    },
-                    VehicleInfo = new Info { Seats = 2 }
+                    Brand = "child vw"
                 }
             }
-            //});
         });
 
-        JsonClass model = GetDocumentModel(json);
+        JsonClass model = ProcessJsonProps(new JsonClass(), JsonDocument.Parse(json).RootElement.EnumerateObject());
         model.Name = "Outer";
 
-    }
-    private static JsonClass GetDocumentModel(string json)
-        => ParseJson(JsonDocument.Parse(json).RootElement);
+        List<CSharpClass> classDefinitions = GenerateClassDefinitions(model, new List<CSharpClass>());
 
-    private static JsonClass ParseJson(JsonElement jsonElement)
+        PrintOutput(classDefinitions);
+    }    
+
+    private static List<CSharpClass> GenerateClassDefinitions(JsonClass model, List<CSharpClass> classDefinitions)
     {
-        JsonElement.ObjectEnumerator obj = jsonElement.EnumerateObject();
+        CSharpClass classDefinition = new CSharpClass(model.Name);
 
-        JsonClass model = ProcessJsonProps(new JsonClass(), obj);
+        foreach (Field field in model.Fields)
+            classDefinition.Fields.Add(
+                new CSharpField(
+                    field.Name, 
+                    field.Type.Name == typeof(string).Name ? $"string" : field.Type.Name,
+                    field.IsArray));
 
-        return model;
+        foreach (JsonClass child in model.Children)
+            classDefinition.Fields.Add(new CSharpField(child.Name, child.Name, child.IsArray));
+
+        CSharpClass? duplicate = GetDuplicate(classDefinitions, classDefinition);
+
+        if (duplicate == null)
+            classDefinitions.Add(classDefinition);
+        else
+            //As we aren't writing this new class definition to output (because its a dupe), we need to modify any references to it in other classes
+            UpdateTypeReferences(classDefinitions, classDefinition, duplicate);
+
+        foreach (JsonClass child in model.Children)
+            GenerateClassDefinitions(child, classDefinitions);
+
+        return classDefinitions;
     }
 
-    private static JsonClass ParseArray(JsonElement arrayElement)
+    private static void UpdateTypeReferences(List<CSharpClass> classDefinitions, CSharpClass classDefinition, CSharpClass duplicate)
     {
-        JsonElement.ObjectEnumerator obj = arrayElement.EnumerateArray().First().EnumerateObject();
-
-        JsonClass model = ProcessJsonProps(new JsonClass(), obj);
-
-        return model;
+        classDefinitions.ForEach(classDef =>
+        {
+            classDef.Fields.ForEach(field =>
+            {
+                if (field.Type == classDefinition.Name)
+                    field.Type = duplicate.Name;
+            });
+        });
     }
+
+    private static CSharpClass? GetDuplicate(List<CSharpClass> classDefinitions, CSharpClass classDefinition) =>
+        classDefinitions.FirstOrDefault(
+            classDef => String.Join(string.Empty,classDef.Fields.Select(x => x.Name)) == 
+            String.Join(string.Empty, classDefinition.Fields.Select(x => x.Name)));
+
+    public class CSharpClass
+    {
+        public CSharpClass(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; set; } = string.Empty;
+        public List<CSharpField> Fields { get; set; } = new List<CSharpField>();
+    }
+
+    public class CSharpField
+    {
+        public CSharpField(string name, string type, bool isArray)
+        {
+            Name = name;
+            Type = type;
+            IsArray = isArray;
+        }
+
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public bool IsArray { get; set; }
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////////////
 
     private static JsonClass ProcessJsonProps(JsonClass model, JsonElement.ObjectEnumerator obj)
     {
@@ -63,7 +128,7 @@ internal class Program
             switch (property.Value.ValueKind)
             {
                 case JsonValueKind.Object:
-                    JsonClass childObj = ParseJson(property.Value);
+                    JsonClass childObj = ProcessJsonProps(new JsonClass(), property.Value.EnumerateObject());
                     childObj.Name = property.Name;
                     model.Children.Add(childObj);
                     break;
@@ -73,11 +138,12 @@ internal class Program
                         break;
                     else if (IsValueTypeArray(property))
                     {
-                        Field field = new Field(property.Name, GetValueType(property.Value.EnumerateArray().First().ValueKind)) { IsArray = true };
-                        model.Fields.Add(field);
+                        model.Fields.Add(new Field(property.Name, GetValueType(property.Value.EnumerateArray().First().ValueKind)) { IsArray = true });
                         break;
                     }
-                    JsonClass childArray = ParseArray(property.Value);
+                    //We only pass the first indice of the array in as we only need to map the values to a new class once
+                    //No hanlding of using multiple types in the same array. Who would want to do that anyway?
+                    JsonClass childArray = ProcessJsonProps(new JsonClass(), property.Value.EnumerateArray().First().EnumerateObject());
                     childArray.Name = property.Name;
                     childArray.IsArray = true;
                     model.Children.Add(childArray);
@@ -89,7 +155,7 @@ internal class Program
                     break;
 
                 case JsonValueKind.Null:
-                    model.Fields.Add(new Field(property.Name, typeof(Nullable<>)));
+                    //model.Fields.Add(new Field(property.Name, typeof(Nullable<>)));
                     break;
 
                 case JsonValueKind.Number:
@@ -101,22 +167,9 @@ internal class Program
         return model;
     }
 
-    private static bool IsValueTypeArray(JsonProperty property)
-    {
-        return !property.Value.ToString().Contains("{");
-    }
+    private static bool IsValueTypeArray(JsonProperty property) => !property.Value.ToString().Contains("[{");
 
-    private static bool IsEmptyArray(JsonProperty property)
-    {
-        return property.Value.ToString() == "[]";
-    }
-
-    private static bool IsValueType(JsonValueKind valueKind) =>
-     valueKind == JsonValueKind.False ||
-     valueKind == JsonValueKind.True ||
-     valueKind == JsonValueKind.String ||
-     valueKind == JsonValueKind.Number ||
-     valueKind == JsonValueKind.Null;
+    private static bool IsEmptyArray(JsonProperty property) => property.Value.ToString() == "[]";
 
     private static Type GetValueType(JsonValueKind valueKind, string? stringValue = null) =>
         valueKind switch
@@ -130,8 +183,6 @@ internal class Program
             JsonValueKind.Null => typeof(Nullable<>),
             _ => throw new Exception($"Unsupported JSON value type: {valueKind}")
         };
-
-
 
     public class JsonClass
     {
@@ -154,7 +205,18 @@ internal class Program
         public bool IsArray { get; set; }
     }
 
+    /////////////////////
 
+    private static void PrintOutput(List<CSharpClass> classDefinitions)
+    {
+        foreach (CSharpClass classDefinition in classDefinitions)
+        {
+            Console.WriteLine($"public class {classDefinition.Name}");
+            Console.WriteLine("{");
+            classDefinition.Fields.ForEach(field => Console.WriteLine($"  public {field.Name} {field.Type}{(field.IsArray ? "[]" : string.Empty)}"));
+            Console.WriteLine("}\n");
+        }
+    }
 
 
 
@@ -162,6 +224,7 @@ internal class Program
     {
         public string FirstName { get; set; }
         public List<Car> CarProps { get; set; } = new List<Car>();
+        public Car CarProp { get; set; } = new Car();
         public string[] Jobs { get; set; }
 
     }
@@ -169,6 +232,7 @@ internal class Program
     public class Car
     {
         public string Brand { get; set; }
+        public int Age { get; set; }
         public Info VehicleInfo { get; set; }
         public List<Owner> Owners { get; set; }
     }

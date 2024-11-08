@@ -1,0 +1,23 @@
+﻿{
+  "FirstName": "fname",
+  "CarProps": [
+    {
+      "Brand": "child vw",
+      "Age": 0,
+      "VehicleInfo": null,
+      "Owners": null
+    }
+  ],
+  "CarProp": {
+    "Brand": "vw",
+    "Age": 21,
+    "VehicleInfo": { "Seats": 2 },
+    "Owners": [
+      {
+        "Details": "new deets",
+        "Credentials": [ { "TheText": "credstext" } ]
+      }
+    ]
+  },
+  "Jobs": [ "job1" ]
+}

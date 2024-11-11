@@ -13,10 +13,4 @@
     <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" Version="11.0.2" />
   </ItemGroup>
 
-	<ItemGroup>
-	  <None Update="SampleData.json">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </None>
-	</ItemGroup>
-
 </Project>

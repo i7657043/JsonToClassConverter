@@ -8,7 +8,7 @@
             classDefinition.Fields.Add(
                 new CSharpField(
                     field.Name,
-                    field.Type.Name == typeof(string).Name ? $"string" : field.Type.Name,
+                    field.Type.Name,
                     field.IsArray));
 
         foreach (JsonClass child in model.Children)
@@ -19,8 +19,13 @@
         if (duplicate == null)
             classDefinitions.Add(classDefinition);
         else
+        {
+
             //As we aren't writing this new class definition to output (because its a dupe), we need to modify any references to it in other classes
             UpdateTypeReferences(classDefinitions, classDefinition, duplicate);
+
+            //List<CSharpField> fields = classDefinitions.First(field => field. == "Nullable`1").Fields;`
+        }            
 
         foreach (JsonClass child in model.Children)
             GenerateClassDefinitions(child, classDefinitions);
@@ -36,6 +41,11 @@
             {
                 if (field.Type == classDefinition.Name)
                     field.Type = duplicate.Name;
+
+                //we arent adding this class definition to the class defs output because its a duplicate, but sometimes we need the types as the first
+                //instnace we added to class defs had null values, so we replace them here
+                if (field.Type == "Nullable`1")
+                    field.Type = classDefinition.Fields.First(classDefField => field.Name == classDefField.Name).Type;                
             });
         });
     }

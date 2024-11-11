@@ -1,6 +1,6 @@
-﻿namespace JsonToClassConverter.JsonParser.Extensions
+﻿namespace JsonToClassConverter.JsonParsing.Extensions
 {
-    internal static class JsonExtensions
+    public static class JsonExtensions
     {
         public static string SanitiseJson(this string json) =>
             json.Replace("\r\n", string.Empty).Replace(" ", string.Empty);

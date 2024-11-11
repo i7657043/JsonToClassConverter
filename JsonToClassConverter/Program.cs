@@ -1,4 +1,4 @@
-﻿using JsonToClassConverter.JsonParser.Extensions;
+﻿using JsonToClassConverter.JsonParsing.Extensions;
 using System.Text.Json;
 
 internal partial class Program

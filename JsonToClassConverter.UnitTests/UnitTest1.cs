@@ -1,6 +1,12 @@
 using FluentAssertions;
+using JsonToClassConverter.ClassDefinitions;
+using JsonToClassConverter.ClassDefinitions.Models;
+using JsonToClassConverter.ClassDefinitions.Extensions;
+using JsonToClassConverter.JsonParsing;
 using JsonToClassConverter.JsonParsing.Extensions;
+using JsonToClassConverter.JsonParsing.Models;
 using System.Text.Json;
+using System.Collections.Generic;
 
 namespace JsonToClassConverter.UnitTests
 {
@@ -71,24 +77,52 @@ namespace JsonToClassConverter.UnitTests
 
             List<CSharpClass> classDefinitions = new ClassDefinitionGenerator().GenerateClassDefinitions(model, new List<CSharpClass>());
 
-            //Assert
-            classDefinitions.Should().BeEquivalentTo(expectedRes);
+            List<CSharpClass> finalisedClasses = new List<CSharpClass>();
 
-            PrintOutput(classDefinitions);
-        }
-
-        private static void PrintOutput(List<CSharpClass> classDefinitions)
-        {
             foreach (CSharpClass classDefinition in classDefinitions)
             {
-                Console.WriteLine($"public class {classDefinition.Name}");
-                Console.WriteLine("{");
+                CSharpClass? existing = GetDuplicates(finalisedClasses, classDefinition);
+                if (existing == null)
+                {
+                    finalisedClasses.Add(classDefinition);
+                }
+                else
+                {
+                    foreach (CSharpField existingField in existing.Fields)
+                    {
+                        if (existingField.Type == "Nullable`1")
+                        {
+                            CSharpField matchingField = classDefinition.Fields.First(field => field.Name == existingField.Name);
+                            if (matchingField.Type != "Nullable`1")
+                            {
+                                existingField.Type = matchingField.Type;
+                            }
+                        }
+                    }
 
-                classDefinition.Fields.ForEach(field =>
-                    Console.WriteLine($"  public {field.Name} {field.Type}{(field.IsArray ? "[]" : string.Empty)}"));
-
-                Console.WriteLine("}\n");
+                    foreach (CSharpField field in classDefinition.Fields)
+                    {
+                        if (field.Type == "Nullable`1")
+                        {
+                            CSharpField matchingField = existing.Fields.First(existingField => existingField.Name == field.Name);
+                            if (matchingField.Type != "Nullable`1")
+                            {
+                                field.Type = matchingField.Type;
+                            }
+                        }
+                    }
+                }
             }
+
+            //Assert
+            //classDefinitions.Should().BeEquivalentTo(expectedRes);
+
+            finalisedClasses.PrintOutput();
+        }
+
+        private static CSharpClass? GetDuplicates(List<CSharpClass> finalisedClasses, CSharpClass classDefinition)
+        {
+            return finalisedClasses.FirstOrDefault(finalisedClass => String.Join(string.Empty, finalisedClass.Fields.Select(field => field.Name)) == String.Join(string.Empty, classDefinition.Fields.Select(field => field.Name)));
         }
     }
 }

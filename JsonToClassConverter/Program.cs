@@ -1,33 +1,26 @@
-﻿using JsonToClassConverter.JsonParsing.Extensions;
+﻿using JsonToClassConverter.ClassDefinitions;
+using JsonToClassConverter.ClassDefinitions.Extensions;
+using JsonToClassConverter.ClassDefinitions.Models;
+using JsonToClassConverter.JsonParsing;
+using JsonToClassConverter.JsonParsing.Extensions;
+using JsonToClassConverter.JsonParsing.Models;
 using System.Text.Json;
 
-internal partial class Program
+namespace JsonToClassConverter
 {
-
-    private static async Task Main(string[] args)
+    internal partial class Program
     {
-        string json = File.ReadAllText($"{Directory.GetCurrentDirectory()}/SampleData.json").SanitiseJson();
 
-        JsonClass model = new JsonParser().ProcessJsonProps(new JsonClass(), JsonDocument.Parse(json).RootElement.EnumerateObject());
-        model.Name = "Outer";
-
-        List<CSharpClass> classDefinitions = new ClassDefinitionGenerator().GenerateClassDefinitions(model, new List<CSharpClass>());
-
-        PrintOutput(classDefinitions);
-    }
-
-
-    private static void PrintOutput(List<CSharpClass> classDefinitions)
-    {
-        foreach (CSharpClass classDefinition in classDefinitions)
+        private static async Task Main(string[] args)
         {
-            Console.WriteLine($"public class {classDefinition.Name}");
-            Console.WriteLine("{");
+            string json = File.ReadAllText($"{Directory.GetCurrentDirectory()}/SampleData.json").SanitiseJson();
 
-            classDefinition.Fields.ForEach(field => 
-                Console.WriteLine($"  public {field.Name} {field.Type}{(field.IsArray ? "[]" : string.Empty)}"));
+            JsonClass model = new JsonParser().ProcessJsonProps(new JsonClass(), JsonDocument.Parse(json).RootElement.EnumerateObject());
+            model.Name = "Outer";
 
-            Console.WriteLine("}\n");
+            List<CSharpClass> classDefinitions = new ClassDefinitionGenerator().GenerateClassDefinitions(model, new List<CSharpClass>());            
+
+            classDefinitions.PrintOutput();
         }
     }
 }

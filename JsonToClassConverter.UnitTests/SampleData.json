@@ -1,11 +1,15 @@
 ﻿{
   "FirstName": "fname",
-  "CarProps": [
+  "PeopleList": [
     {
-      "Brand": "vw",
-      "Age": 0,
-      "VehicleInfo": null,
-      "Owners": null
+      "name": "john",
+      "age": 25,
+      "locations": [ 1, 5, 7 ]
+    },
+    {
+      "name": "jor",
+      "age": 26,
+      "locations": [ 5, 7 ]
     }
   ],
   "CarProp": {
@@ -19,6 +23,14 @@
       }
     ]
   },
+  "CarProps": [
+    {
+      "Brand": "vw",
+      "Age": 0,
+      "VehicleInfo": null,
+      "Owners": null
+    }
+  ],
   "Jobs": [ "job1" ],
   "Qualified": true
 }

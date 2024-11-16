@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "JsonToClassConverter": {
+      "commandName": "Project",
+      "commandLineArgs": "-i C:\\Users\\jorda\\source\\repos\\JsonToClassConverter\\JsonToClassConverter.UnitTests\\SampleData.json -o C:\\fv\\csharpclassout.cs"
+    }
+  }
+}

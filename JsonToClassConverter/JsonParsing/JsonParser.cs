@@ -3,17 +3,16 @@ using System.Text.Json;
 
 namespace JsonToClassConverter.JsonParsing
 {
-    public class JsonParser
+    public class JsonParser : IJsonParser
     {
-        public JsonClass ProcessJsonProps(JsonClass model, JsonElement.ObjectEnumerator obj)
+        public JsonClass ProcessJsonProps(JsonClass model, JsonElement.ObjectEnumerator jsonObject)
         {
-            foreach (JsonProperty property in obj)
+            foreach (JsonProperty property in jsonObject)
             {
                 switch (property.Value.ValueKind)
                 {
                     case JsonValueKind.Object:
-                        JsonClass childObj = ProcessJsonProps(new JsonClass(), property.Value.EnumerateObject());
-                        childObj.Name = property.Name;
+                        JsonClass childObj = ProcessJsonProps(new JsonClass(property.Name), property.Value.EnumerateObject());
                         model.Children.Add(childObj);
                         break;
 
@@ -27,8 +26,7 @@ namespace JsonToClassConverter.JsonParsing
                         }
                         //We only pass the first indice of the array in as we only need to map the values to a new class once
                         //No hanlding of using multiple types in the same array. Who would want to do that anyway?
-                        JsonClass childArray = ProcessJsonProps(new JsonClass(), property.Value.EnumerateArray().First().EnumerateObject());
-                        childArray.Name = property.Name;
+                        JsonClass childArray = ProcessJsonProps(new JsonClass(property.Name), property.Value.EnumerateArray().First().EnumerateObject());
                         childArray.IsArray = true;
                         model.Children.Add(childArray);
                         break;

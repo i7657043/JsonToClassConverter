@@ -1,10 +1,12 @@
-﻿namespace JsonToClassConverter.JsonParsing.Models
+﻿using JsonToClassConverter.ClassDefinitions.Extensions;
+
+namespace JsonToClassConverter.JsonParsing.Models
 {
     public class JsonField
     {
         public JsonField(string name, Type type)
         {
-            Name = name;
+            Name = name.GetUppercaseFirstLetter();
             Type = type;
         }
 

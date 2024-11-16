@@ -1,12 +1,8 @@
 using FluentAssertions;
-using JsonToClassConverter.ClassDefinitions;
 using JsonToClassConverter.ClassDefinitions.Models;
-using JsonToClassConverter.ClassDefinitions.Extensions;
-using JsonToClassConverter.JsonParsing;
 using JsonToClassConverter.JsonParsing.Extensions;
-using JsonToClassConverter.JsonParsing.Models;
-using System.Text.Json;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace JsonToClassConverter.UnitTests
 {
@@ -32,19 +28,29 @@ namespace JsonToClassConverter.UnitTests
                     {
                         new CSharpField("FirstName", "String", false),
                         new CSharpField("Jobs", "String", true),
+                        new CSharpField("PeopleList", "PeopleList", true),
                         new CSharpField("Qualified", "Boolean", false),
-                        new CSharpField("CarProps", "CarProps", true),
-                        new CSharpField("CarProp", "CarProps", false)
+                        new CSharpField("CarProps", "CarProp", true),
+                        new CSharpField("CarProp", "CarProp", false)
                     }
                 },
-                new CSharpClass("CarProps")
+                new CSharpClass("PeopleList")
+                {
+                    Fields = new List<CSharpField>
+                    {
+                        new CSharpField("Name", "String", false),
+                        new CSharpField("Age", "Double", false),
+                        new CSharpField("Locations", "Double", true)
+                    }
+                },
+                new CSharpClass("CarProp")
                 {
                     Fields = new List<CSharpField>
                     {
                         new CSharpField("Brand", "String", false),
                         new CSharpField("Age", "Double", false),
                         new CSharpField("VehicleInfo", "VehicleInfo", false),
-                        new CSharpField("Owners", "Owners", false)
+                        new CSharpField("Owners", "Owners", true)
                     }
                 },
                 new CSharpClass("VehicleInfo")
@@ -72,57 +78,15 @@ namespace JsonToClassConverter.UnitTests
             };
 
             //Act
-            JsonClass model = new JsonParser().ProcessJsonProps(new JsonClass(), JsonDocument.Parse(json).RootElement.EnumerateObject());
-            model.Name = "Outer";
-
-            List<CSharpClass> classDefinitions = new ClassDefinitionGenerator().GenerateClassDefinitions(model, new List<CSharpClass>());
-
-            List<CSharpClass> finalisedClasses = new List<CSharpClass>();
-
-            foreach (CSharpClass classDefinition in classDefinitions)
+            List<CSharpClass> classDefinitions = new ConverterController(new Mock<ILogger<ConverterController>>().Object, new CommandLineOptions
             {
-                CSharpClass? existing = GetDuplicates(finalisedClasses, classDefinition);
-                if (existing == null)
-                {
-                    finalisedClasses.Add(classDefinition);
-                }
-                else
-                {
-                    foreach (CSharpField existingField in existing.Fields)
-                    {
-                        if (existingField.Type == "Nullable`1")
-                        {
-                            CSharpField matchingField = classDefinition.Fields.First(field => field.Name == existingField.Name);
-                            if (matchingField.Type != "Nullable`1")
-                            {
-                                existingField.Type = matchingField.Type;
-                            }
-                        }
-                    }
-
-                    foreach (CSharpField field in classDefinition.Fields)
-                    {
-                        if (field.Type == "Nullable`1")
-                        {
-                            CSharpField matchingField = existing.Fields.First(existingField => existingField.Name == field.Name);
-                            if (matchingField.Type != "Nullable`1")
-                            {
-                                field.Type = matchingField.Type;
-                            }
-                        }
-                    }
-                }
-            }
+                InputPath = "SampleData.json",
+                OutputPath = "OutputPath.cs"
+            })
+            .Convert(json);
 
             //Assert
-            //classDefinitions.Should().BeEquivalentTo(expectedRes);
-
-            finalisedClasses.PrintOutput();
-        }
-
-        private static CSharpClass? GetDuplicates(List<CSharpClass> finalisedClasses, CSharpClass classDefinition)
-        {
-            return finalisedClasses.FirstOrDefault(finalisedClass => String.Join(string.Empty, finalisedClass.Fields.Select(field => field.Name)) == String.Join(string.Empty, classDefinition.Fields.Select(field => field.Name)));
+            classDefinitions.Should().BeEquivalentTo(expectedRes);
         }
     }
 }

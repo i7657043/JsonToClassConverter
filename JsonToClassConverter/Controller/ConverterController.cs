@@ -24,9 +24,7 @@ public class ConverterController : IConverterController
             ? File.ReadAllText(_commandLineOptions.InputPath).SanitiseJson()
             : _commandLineOptions.JsonText;
 
-        List<CSharpClass> classDefinitions = Convert(json);
-
-        _logger.LogInformation("Created the following {@ClassCount} classes:\n", classDefinitions.Count);
+        List<CSharpClass> classDefinitions = Convert(json);  
 
         classDefinitions.PrintOutput(_logger);
 
@@ -46,7 +44,7 @@ public class ConverterController : IConverterController
         catch (Exception ex)
         {
             throw new JsonParsingException($"Could not parse invalid JSON: {ex.Message}");
-        }        
+        }
 
         JsonClass jsonModel = new JsonParser().ProcessJsonProps(new JsonClass("Outer"), jsonProps);
 
@@ -60,7 +58,7 @@ public class ConverterController : IConverterController
 
         foreach (CSharpClass classDefinition in classDefinitions)
         {
-            CSharpClass? existing = finalisedClassDefinitions.GetIfExists(classDefinition);
+            CSharpClass? existing = GetIfExists(finalisedClassDefinitions, classDefinition);
             if (existing == null)
             {
                 finalisedClassDefinitions.Add(classDefinition);
@@ -73,11 +71,33 @@ public class ConverterController : IConverterController
             UpdateTypesInFinalClassDefinitions(finalisedClassDefinitions, classDefinition, existing);
         }
 
+        RemoveNullValuesFromOutput(finalisedClassDefinitions);
+
+        _logger.LogInformation("Created {@ClassCount} CSharp Class/es:\n", finalisedClassDefinitions.Count);
+
         return finalisedClassDefinitions;
     }
 
     public async Task WriteAsync(List<CSharpClass> classDefinitions, string outputPath) =>
-        await File.WriteAllTextAsync(outputPath, classDefinitions.GetClassDefinitionsAsOutput());
+       await File.WriteAllTextAsync(outputPath, classDefinitions.GetClassDefinitionsAsOutput());
+
+    private void RemoveNullValuesFromOutput(List<CSharpClass> finalisedClassDefinitions)
+    {
+        foreach (CSharpClass classDefinition in finalisedClassDefinitions)
+        {
+            List<int> fieldsToRemove = new List<int>();
+            for (int i = 0; i < classDefinition.Fields.Count; i++)
+            {
+                if (classDefinition.Fields[i].Type == "null")
+                {
+                    _logger.LogInformation("Could not map Field: {@FieldName} as it has null value", $"{classDefinition.Name}.{classDefinition.Fields[i].Name}");
+                    fieldsToRemove.Add(i);
+                }
+            }
+
+            fieldsToRemove.ForEach(classDefinition.Fields.RemoveAt);
+        }
+    }
 
     private static void UpdateTypesInFinalClassDefinitions(List<CSharpClass> finalisedClasses, CSharpClass current, CSharpClass existing)
     {
@@ -98,5 +118,11 @@ public class ConverterController : IConverterController
                     existingField.Type = currentField.Type;
             }
     }
+
+    public CSharpClass? GetIfExists(List<CSharpClass> existingClasses, CSharpClass classToSearchFor) =>
+            existingClasses.FirstOrDefault(finalisedClass =>
+                String.Join(string.Empty, finalisedClass.Fields.Select(field => field.Name)) ==
+                String.Join(string.Empty, classToSearchFor.Fields.Select(field => field.Name))
+            );        
 }
 

@@ -37,14 +37,5 @@ namespace JsonToClassConverter.ClassDefinitions.Extensions
 
             return sb.ToString();
         }
-
-        public static string GetUppercaseFirstLetter(this string word) =>
-            char.ToUpper(word[0]) + word.Substring(1);
-
-        public static CSharpClass? GetIfExists(this List<CSharpClass> finalisedClasses, CSharpClass classDefinition) =>
-            finalisedClasses.FirstOrDefault(finalisedClass =>
-                String.Join(string.Empty, finalisedClass.Fields.Select(field => field.Name)) ==
-                String.Join(string.Empty, classDefinition.Fields.Select(field => field.Name))
-            );
     }
 }

@@ -1,6 +1,5 @@
 ﻿using JsonToClassConverter.ClassDefinitions.Models;
 using JsonToClassConverter.JsonParsing.Models;
-using Microsoft.Extensions.Logging;
 
 namespace JsonToClassConverter.ClassDefinitions
 {
@@ -14,7 +13,7 @@ namespace JsonToClassConverter.ClassDefinitions
                 classDefinition.Fields.Add(
                     new CSharpField(
                         field.Name,
-                        field.Type.Name,
+                        GetValueType(field.Type), //ToDo: Get the value type for string, bool + double
                         field.IsArray));
 
             foreach (JsonClass child in model.Children)
@@ -26,6 +25,20 @@ namespace JsonToClassConverter.ClassDefinitions
                 GenerateClassDefinitions(child, classDefinitions);
 
             return classDefinitions;
+        }
+
+        private string GetValueType(Type type)
+        {
+            if (type == typeof(String))
+                return "string";
+            else if (type == typeof(Double))
+                return "double";
+            else if (type == typeof(Boolean))
+                return "bool";
+            else if (type.Name == "Nullable`1")
+                return "null";
+            else
+                throw new Exception($"Unrecognised type: {type.Name}");
         }
     }
 }

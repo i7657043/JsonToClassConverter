@@ -14,7 +14,7 @@ namespace JsonToClassConverter.ClassDefinitions.Extensions
                 logger.LogInformation("{");
 
                 classDefinition.Fields.ForEach(field =>
-                    logger.LogInformation($"  public {field.Type}{(field.IsArray ? "[]" : string.Empty)} {field.Name}"));
+                    logger.LogInformation($"  public {field.Type}{(field.IsArray ? "[]" : string.Empty)} {field.Name} {{ get; set; }}"));
 
                 logger.LogInformation("}\n");
             }
@@ -30,7 +30,7 @@ namespace JsonToClassConverter.ClassDefinitions.Extensions
                 sb.AppendLine("{");
 
                 classDefinition.Fields.ForEach(field =>
-                    sb.AppendLine($"  public {field.Type}{(field.IsArray ? "[]" : string.Empty)} {field.Name} "));
+                    sb.AppendLine($"  public {field.Type}{(field.IsArray ? "[]" : string.Empty)} {field.Name} {{ get; set; }}"));
 
                 sb.AppendLine("}\n");
             }

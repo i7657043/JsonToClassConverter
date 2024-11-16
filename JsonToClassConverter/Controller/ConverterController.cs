@@ -20,7 +20,9 @@ public class ConverterController : IConverterController
 
     public async Task Run()
     {
-        string json = File.ReadAllText(_commandLineOptions.InputPath).SanitiseJson();
+        string json = !string.IsNullOrEmpty(_commandLineOptions.InputPath)
+            ? File.ReadAllText(_commandLineOptions.InputPath).SanitiseJson()
+            : _commandLineOptions.JsonText;
 
         List<CSharpClass> classDefinitions = Convert(json);
 
@@ -35,7 +37,18 @@ public class ConverterController : IConverterController
     {
         _logger.LogInformation("Processing JSON models");
 
-        JsonClass jsonModel = new JsonParser().ProcessJsonProps(new JsonClass("Outer"), JsonDocument.Parse(json).RootElement.EnumerateObject());
+        JsonElement.ObjectEnumerator jsonProps = new JsonElement.ObjectEnumerator();
+
+        try
+        {
+            jsonProps = JsonDocument.Parse(json).RootElement.EnumerateObject();
+        }
+        catch (Exception ex)
+        {
+            throw new JsonParsingException($"Could not parse invalid JSON: {ex.Message}");
+        }        
+
+        JsonClass jsonModel = new JsonParser().ProcessJsonProps(new JsonClass("Outer"), jsonProps);
 
         _logger.LogInformation("Generating class definitions");
 
@@ -78,10 +91,10 @@ public class ConverterController : IConverterController
     private static void ReplaceNullableValuesIfCurrentIsBetter(CSharpClass current, CSharpClass existing)
     {
         foreach (CSharpField existingField in existing.Fields)
-            if (existingField.Type == "Nullable`1")
+            if (existingField.Type == "null")
             {
                 CSharpField currentField = current.Fields.First(field => field.Name == existingField.Name);
-                if (currentField.Type != "Nullable`1")
+                if (currentField.Type != "null")
                     existingField.Type = currentField.Type;
             }
     }

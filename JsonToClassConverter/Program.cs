@@ -26,7 +26,13 @@ internal class Program
                        .WriteTo.Console(outputTemplate: "{Message}{NewLine}{Exception}")
                        .CreateLogger();
 
+                       if (!string.IsNullOrEmpty(options.InputPath) && !string.IsNullOrEmpty(options.JsonText))
+                           throw new ArgumentException("You must not use both -i and -j args together");
+                       else if (string.IsNullOrEmpty(options.InputPath) && string.IsNullOrEmpty(options.JsonText))
+                           throw new ArgumentException("You must use either -i or -j args, but not both");
+
                        commandLineOptions.InputPath = options.InputPath;
+                       commandLineOptions.JsonText = options.JsonText;
 
                        options.OutputPath.CreateIfNotExists();
                        commandLineOptions.OutputPath = options.OutputPath;                       
@@ -45,11 +51,11 @@ internal class Program
         }
         catch (PathException ex)
         {
-            Log.Logger.Fatal("There was an error on Startup when accessing path: {@Path}. Exiting application", ex.Path);
+            Log.Logger.Fatal("There was an error on Startup when accessing path: {@Path}", ex.Path);
         }
         catch (Exception ex)
         {
-            Log.Logger.Fatal("There was a fatal error on Startup {@ExceptionMessage} Exiting application", ex.Message);
+            Log.Logger.Fatal("There was a fatal error on Startup {@ExceptionMessage}", ex.Message);
         }
     }
 }

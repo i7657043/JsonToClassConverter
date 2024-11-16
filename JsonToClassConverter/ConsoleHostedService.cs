@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System.Reflection;
 
 internal class ConsoleHostedService : IHostedService
@@ -33,13 +34,19 @@ internal class ConsoleHostedService : IHostedService
                 }
                 catch (PathException ex)
                 {
-                    _logger.LogCritical("{AppName} Process exited with Path exception {@PathException}", appName, ex);
+                    _logger.LogCritical("{AppName} Process exited with Path exception {@PathException}", appName, ex.Message);
+
+                    Environment.Exit(-1);
+                }
+                catch (JsonParsingException ex)
+                {
+                    _logger.LogCritical(ex.JsonParsingErrorMessage);
 
                     Environment.Exit(-1);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogCritical("{AppName} Process exited with exception {@Exception}", appName, ex);
+                    _logger.LogCritical("{AppName} Process exited with exception {@Exception}", appName, ex.Message);
 
                     Environment.Exit(-1);
                 }

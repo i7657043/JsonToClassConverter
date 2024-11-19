@@ -2,7 +2,10 @@
   "profiles": {
     "JsonToClassConverter": {
       "commandName": "Project",
-      "commandLineArgs": "-j \"{\\\"FirstName\\\":\\\"fname\\\",\\\"PeopleList\\\":[{\\\"name\\\":\\\"john\\\",\\\"age\\\":25,\\\"locations\\\":[1,5,7]},{\\\"name\\\":\\\"jor\\\",\\\"age\\\":26,\\\"locations\\\":[5,7]}],\\\"CarProp\\\":{\\\"Brand\\\":\\\"vw\\\",\\\"Age\\\":21,\\\"VehicleInfo\\\":{\\\"Seats\\\":2},\\\"Owners\\\":[{\\\"Details\\\":\\\"newdeets\\\",\\\"Credentials\\\":[{\\\"TheText\\\":\\\"credstext\\\"}]}]},\\\"CarProps\\\":[{\\\"Brand\\\":\\\"vw\\\",\\\"Age\\\":0,\\\"VehicleInfo\\\":null,\\\"Owners\\\":null}],\\\"Jobs\\\":[\\\"job1\\\"],\\\"Qualified\\\":true}\" -o C:\\fv\\csharpout.cs"
+      "commandLineArgs": "-u https://jsonplaceholder.typicode.com/todos/1 -o C:\\fv\\newcout.cs"
     }
   }
 }
+
+// "commandLineArgs": "-j \"{\\\"FirstName\\\":\\\"fname\\\",\\\"PeopleList\\\":[{\\\"name\\\":\\\"john\\\",\\\"age\\\":25,\\\"locations\\\":[1,5,7]},{\\\"name\\\":\\\"jor\\\",\\\"age\\\":26,\\\"locations\\\":[5,7]}],\\\"CarProp\\\":{\\\"Brand\\\":\\\"vw\\\",\\\"Age\\\":21,\\\"VehicleInfo\\\":{\\\"Seats\\\":2},\\\"Owners\\\":[{\\\"Details\\\":\\\"newdeets\\\",\\\"Credentials\\\":[{\\\"TheText\\\":\\\"credstext\\\"}]}]},\\\"CarProps\\\":[{\\\"Brand\\\":\\\"vw\\\",\\\"Age\\\":0,\\\"VehicleInfo\\\":null,\\\"Owners\\\":null}],\\\"Jobs\\\":[\\\"job1\\\"],\\\"Qualified\\\":true}\" -o C:\\fv\\csharpout.cs"
+// "commandLineArgs": "-i C:\\fv\\inp.json -o C:\\\\fv\\\\csharpout.cs"

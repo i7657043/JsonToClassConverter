@@ -26,15 +26,15 @@ internal class ConsoleHostedService : IHostedService
 
                 try
                 {
-                    await _app.Run();
+                    await _app.RunAsync();
 
-                    _logger.LogDebug("{AppName} Process complete", appName);
+                    _logger.LogDebug("Process complete");
 
                     _appLifetime.StopApplication();
                 }
                 catch (PathException ex)
                 {
-                    _logger.LogCritical("{AppName} Process exited with Path exception {@PathException}", appName, ex.Message);
+                    _logger.LogCritical($"Process exited with Path exception: {ex.Message}");
 
                     Environment.Exit(-1);
                 }
@@ -46,7 +46,7 @@ internal class ConsoleHostedService : IHostedService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogCritical("{AppName} Process exited with exception {@Exception}", appName, ex.Message);
+                    _logger.LogCritical($"Process exited with exception {ex.Message}");
 
                     Environment.Exit(-1);
                 }

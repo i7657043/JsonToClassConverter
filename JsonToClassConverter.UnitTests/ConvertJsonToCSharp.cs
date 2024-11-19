@@ -1,8 +1,11 @@
 using FluentAssertions;
+using JsonToClassConverter.ClassDefinitions.Extensions;
 using JsonToClassConverter.ClassDefinitions.Models;
 using JsonToClassConverter.JsonParsing.Extensions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Serilog;
+using Serilog.Extensions.Logging;
 
 namespace JsonToClassConverter.UnitTests
 {
@@ -26,29 +29,29 @@ namespace JsonToClassConverter.UnitTests
                 {
                     Fields = new List<CSharpField>
                     {
-                        new CSharpField("FirstName", "String", false),
-                        new CSharpField("Jobs", "String", true),
+                        new CSharpField("FirstName", "string", false),
+                        new CSharpField("Jobs", "string", true),
+                        new CSharpField("Qualified", "bool", false),
                         new CSharpField("PeopleList", "PeopleList", true),
-                        new CSharpField("Qualified", "Boolean", false),
-                        new CSharpField("CarProps", "CarProp", true),
-                        new CSharpField("CarProp", "CarProp", false)
+                        new CSharpField("CarProp", "CarProp", false),
+                        new CSharpField("CarProps", "CarProp", true)
                     }
                 },
                 new CSharpClass("PeopleList")
                 {
                     Fields = new List<CSharpField>
                     {
-                        new CSharpField("Name", "String", false),
-                        new CSharpField("Age", "Double", false),
-                        new CSharpField("Locations", "Double", true)
+                        new CSharpField("Name", "string", false),
+                        new CSharpField("Age", "double", false),
+                        new CSharpField("Locations", "double", true)
                     }
                 },
                 new CSharpClass("CarProp")
                 {
                     Fields = new List<CSharpField>
                     {
-                        new CSharpField("Brand", "String", false),
-                        new CSharpField("Age", "Double", false),
+                        new CSharpField("Brand", "string", false),
+                        new CSharpField("Age", "double", false),
                         new CSharpField("VehicleInfo", "VehicleInfo", false),
                         new CSharpField("Owners", "Owners", true)
                     }
@@ -57,14 +60,14 @@ namespace JsonToClassConverter.UnitTests
                 {
                     Fields = new List<CSharpField>
                     {
-                        new CSharpField("Seats", "Double", false)
+                        new CSharpField("Seats", "double", false)
                     }
                 },
                 new CSharpClass("Owners")
                 {
                     Fields = new List<CSharpField>
                     {
-                        new CSharpField("Details", "String", false),
+                        new CSharpField("Details", "string", false),
                         new CSharpField("Credentials", "Credentials", true)
                     }
                 },
@@ -72,21 +75,34 @@ namespace JsonToClassConverter.UnitTests
                 {
                     Fields = new List<CSharpField>
                     {
-                        new CSharpField("TheText", "String", false)
+                        new CSharpField("TheText", "string", false)
                     }
                 }
             };
 
+            ILogger<ConverterController> logger = GetLogger();
+
+            Mock<IJsonService> jsonService = new Mock<IJsonService>();
+
             //Act
-            List<CSharpClass> classDefinitions = new ConverterController(new Mock<ILogger<ConverterController>>().Object, new CommandLineOptions
+            List<CSharpClass> classDefinitions = new ConverterController(logger, new CommandLineOptions
             {
                 InputPath = "SampleData.json",
                 OutputPath = "OutputPath.cs"
-            })
+            }, jsonService.Object)
             .Convert(json);
 
             //Assert
             classDefinitions.Should().BeEquivalentTo(expectedRes);
+
+            classDefinitions.PrintOutput(logger);
         }
+
+        private static ILogger<ConverterController> GetLogger() =>
+            new SerilogLoggerFactory(new LoggerConfiguration()
+                .MinimumLevel.Is(Serilog.Events.LogEventLevel.Information)
+                .WriteTo.Console(outputTemplate: "{Message}{NewLine}{Exception}")
+                .CreateLogger())
+            .CreateLogger<ConverterController>();
     }
 }

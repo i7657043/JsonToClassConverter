@@ -7,29 +7,31 @@ using System.Text.Json;
 using JsonToClassConverter.ClassDefinitions.Extensions;
 using JsonToClassConverter.JsonParsing.Extensions;
 
+
+
 public class ConverterController : IConverterController
 {
     private readonly ILogger _logger;
     private readonly CommandLineOptions _commandLineOptions;
-    
-    public ConverterController(ILogger<ConverterController> logger, CommandLineOptions commandLineOptions)
+    private readonly IJsonService _jsonService;
+
+    public ConverterController(ILogger<ConverterController> logger, CommandLineOptions commandLineOptions, IJsonService jsonService)
     {
         _logger = logger;
         _commandLineOptions = commandLineOptions;
+        _jsonService = jsonService;
     }
 
-    public async Task Run()
+    public async Task RunAsync()
     {
-        string json = !string.IsNullOrEmpty(_commandLineOptions.InputPath)
-            ? File.ReadAllText(_commandLineOptions.InputPath).SanitiseJson()
-            : _commandLineOptions.JsonText;
+        string json = await _jsonService.GetJsonFromSource(_commandLineOptions);
 
-        List<CSharpClass> classDefinitions = Convert(json);  
+        List<CSharpClass> classDefinitions = Convert(json);
 
         classDefinitions.PrintOutput(_logger);
 
         await WriteAsync(classDefinitions, _commandLineOptions.OutputPath);
-    }
+    }    
 
     public List<CSharpClass> Convert(string json)
     {
@@ -73,7 +75,9 @@ public class ConverterController : IConverterController
 
         RemoveNullValuesFromOutput(finalisedClassDefinitions);
 
-        _logger.LogInformation("Created {@ClassCount} CSharp Class/es:\n", finalisedClassDefinitions.Count);
+        _logger.LogInformation("Created {@ClassCount} CSharp Class/es:", finalisedClassDefinitions.Count);
+
+        _logger.LogInformation($"\nWrote output to: {_commandLineOptions.OutputPath}\n");
 
         return finalisedClassDefinitions;
     }

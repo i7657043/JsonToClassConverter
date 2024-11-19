@@ -13,7 +13,7 @@ internal class Program
         try
         {
             await Host.CreateDefaultBuilder(args)
-               .UseContentRoot(Path.GetDirectoryName(Assembly.GetExecutingAssembly()?.Location))               
+               .UseContentRoot(Directory.GetCurrentDirectory())
                .ConfigureServices((hostContext, services) =>
                {
                    CommandLineOptions commandLineOptions = new CommandLineOptions();
@@ -23,25 +23,20 @@ internal class Program
                    {
                        Log.Logger = new LoggerConfiguration()
                        .MinimumLevel.Is(Serilog.Events.LogEventLevel.Information)
+                       .MinimumLevel.Override("System.Net.Http", Serilog.Events.LogEventLevel.Warning)// Suppress detailed HTTP logs
                        .WriteTo.Console(outputTemplate: "{Message}{NewLine}{Exception}")
                        .CreateLogger();
 
-                       if (!string.IsNullOrEmpty(options.InputPath) && !string.IsNullOrEmpty(options.JsonText))
-                           throw new ArgumentException("You must not use both -i and -j args together");
-                       else if (string.IsNullOrEmpty(options.InputPath) && string.IsNullOrEmpty(options.JsonText))
-                           throw new ArgumentException("You must use either -i or -j args, but not both");
-
-                       commandLineOptions.InputPath = options.InputPath;
-                       commandLineOptions.JsonText = options.JsonText;
-
-                       options.OutputPath.CreateIfNotExists();
-                       commandLineOptions.OutputPath = options.OutputPath;                       
+                       SetPathArgs(commandLineOptions, options);
                    });
 
                    services.Configure((Action<ConsoleLifetimeOptions>)(options => options.SuppressStatusMessages = true));
 
+                   services.AddHttpClient();
+
                    services.AddSingleton(commandLineOptions)
                    .AddSingleton<IJsonParser, JsonParser>()
+                   .AddSingleton<IJsonService, JsonService>()
                    .AddSingleton<IClassDefinitionGenerator, ClassDefinitionGenerator>()
                    .AddSingleton<IConverterController, ConverterController>()
                    .AddHostedService<ConsoleHostedService>();
@@ -55,7 +50,19 @@ internal class Program
         }
         catch (Exception ex)
         {
-            Log.Logger.Fatal("There was a fatal error on Startup {@ExceptionMessage}", ex.Message);
+            Log.Logger.Fatal($"There was a fatal error on Startup {ex.Message}");
         }
+    }
+
+    private static void SetPathArgs(CommandLineOptions commandLineOptions, CommandLineOptions options)
+    {
+        commandLineOptions.ValidateArgs(options);
+
+        commandLineOptions.InputPath = options.InputPath;
+        commandLineOptions.JsonText = options.JsonText;
+        commandLineOptions.Url = options.Url;
+
+        options.OutputPath.CreateIfNotExists();
+        commandLineOptions.OutputPath = options.OutputPath;
     }
 }

@@ -12,4 +12,7 @@ public class CommandLineOptions
 
     [Option('j', "json", Required = false, HelpText = "JSON string")]
     public string JsonText { get; set; } = string.Empty;
+
+    [Option('u', "url", Required = false, HelpText = "URL with JSON response")]
+    public string Url { get; set; } = string.Empty;
 }

@@ -46,7 +46,7 @@ internal class ConsoleHostedService : IHostedService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogCritical($"Process exited with exception {ex.Message}");
+                    _logger.LogCritical($"Process exited with exception: {ex.Message}");
 
                     Environment.Exit(-1);
                 }

@@ -58,7 +58,7 @@ internal class Program
     {
         commandLineOptions.ValidateArgs(options);
 
-        commandLineOptions.InputPath = options.InputPath;
+        commandLineOptions.FilePath = options.FilePath;
         commandLineOptions.JsonText = options.JsonText;
         commandLineOptions.Url = options.Url;
 

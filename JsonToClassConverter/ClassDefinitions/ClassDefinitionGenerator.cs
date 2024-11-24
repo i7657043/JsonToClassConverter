@@ -31,6 +31,8 @@ namespace JsonToClassConverter.ClassDefinitions
         {
             if (type == typeof(String))
                 return "string";
+            else if (type == typeof(DateTime))
+                return "DateTime";
             else if (type == typeof(Double))
                 return "double";
             else if (type == typeof(Boolean))

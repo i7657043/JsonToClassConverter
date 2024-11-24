@@ -16,11 +16,11 @@ public class JsonService : IJsonService
     {
         string json = string.Empty;
 
-        if (!string.IsNullOrEmpty(commandLineOptions.InputPath))
+        if (!string.IsNullOrEmpty(commandLineOptions.FilePath))
         {
-            _logger.LogInformation($"Getting JSON from path: {commandLineOptions.InputPath}");
+            _logger.LogInformation($"Getting JSON from path: {commandLineOptions.FilePath}");
 
-            json = File.ReadAllText(commandLineOptions.InputPath).SanitiseJson();
+            json = File.ReadAllText(commandLineOptions.FilePath).SanitiseJson();
         }
         else if (!string.IsNullOrEmpty(commandLineOptions.JsonText))
         {

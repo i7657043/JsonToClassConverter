@@ -1,10 +1,8 @@
-# Json to CSharp Class Generator
+# Json to CSharp Class Generator (json2csharp.exe)
 
-## Description
+### Description
 
-A simple .NET Core console application to
-
-## Getting Started
+A simple .NET Core console application to generate CSharp classes from JSON
 
 ### Dependencies
 
@@ -17,33 +15,34 @@ A simple .NET Core console application to
 ## Flags
 
 ```
-`-p|--path` (string) the path to scan from
-`-s|-sizeout` (number) the number of directories to show in output
-`-v|--verbose` (no value) include verbose output
+Select 1 of these options
+`-u|--url` (string) url with JSON response to use as input
+`-j|--json` (string) raw JSON string to use as input
+`-f|-file` (string) path to JSON file to use as input
+
+Required
+`-o|--out` (no value) path to write CSharp class files to
 ```
 
 ## Usage
 
-#### Input .json file
+#### Input url with json response
 
-`.\JsonToClassConverter.exe -j $escapedJson -o C:\fv\csharpout.cs`
+`.\json2csharp.exe -u "https://petition.parliament.uk/petitions/700143.json" -o C:\fv\csharpout.cs`
 
 #### Input json string
 
-`.\JsonToClassConverter.exe -i C:\fv\input_file.json -o C:\fv\csharpout.cs`
-
-#### Input url with json response
-
-`.\JsonToClassConverter.exe -u "https://jsonplaceholder.typicode.com/todos/1" -o C:\fv\csharpout.cs`
-
-#### Use as part of a script
-
 ```
-$apiUrl = "https://jsonplaceholder.typicode.com/todos/1"
+//Use as part of a script
+$apiUrl = "https://petition.parliament.uk/petitions/700143.json"
 $jsonResponse = Invoke-RestMethod -Uri $apiUrl -Method Get
 
 $jsonString = $jsonResponse | ConvertTo-Json -Depth 10
 $escapedJson = $jsonString -replace '"', '\"'
 
-.\JsonToClassConverter.exe -j $escapedJson -o C:\fv\csharpout.cs
+.\json2csharp.exe -j $escapedJson -o C:\fv\csharpout.cs
 ```
+
+#### Input .json file
+
+`.\json2csharp.exe -i C:\fv\input_file.json -o C:\fv\csharpout.cs`

@@ -1,29 +1,42 @@
 ﻿{
   "FirstName": "fname",
-  "PeopleList": [
+  "People": [
     {
       "name": "john",
       "age": 25,
-      "locations": [ 1, 5, 7 ]
+      "locations": [
+        1,
+        5,
+        7
+      ]
     },
     {
       "name": "jor",
       "age": 26,
-      "locations": [ 5, 7 ]
+      "locations": [
+        5,
+        7
+      ]
     }
   ],
-  "CarProp": {
+  "Car": {
     "Brand": "vw",
     "Age": 21,
-    "VehicleInfo": { "Seats": 2 },
+    "VehicleInfo": {
+      "Seats": 2
+    },
     "Owners": [
       {
         "Details": "newdeets",
-        "Credentials": [ { "TheText": "credstext" } ]
+        "Credentials": [
+          {
+            "Secret": "credstext"
+          }
+        ]
       }
     ]
   },
-  "CarProps": [
+  "Cars": [
     {
       "Brand": "vw",
       "Age": 0,
@@ -31,6 +44,8 @@
       "Owners": null
     }
   ],
-  "Jobs": [ "job1" ],
+  "Jobs": [
+    "job1"
+  ],
   "Qualified": true
 }

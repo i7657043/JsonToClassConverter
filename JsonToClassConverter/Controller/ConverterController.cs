@@ -5,9 +5,6 @@ using JsonToClassConverter.JsonParsing;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using JsonToClassConverter.ClassDefinitions.Extensions;
-using JsonToClassConverter.JsonParsing.Extensions;
-
-
 
 public class ConverterController : IConverterController
 {
@@ -45,7 +42,7 @@ public class ConverterController : IConverterController
         }
         catch (Exception ex)
         {
-            throw new JsonParsingException($"Could not parse invalid JSON: {ex.Message}");
+            throw new JsonParsingException($"Could not parse array or invalid JSON: {ex.Message}");
         }
 
         JsonClass jsonModel = new JsonParser().ProcessJsonProps(new JsonClass("Outer"), jsonProps);
@@ -73,7 +70,7 @@ public class ConverterController : IConverterController
             UpdateTypesInFinalClassDefinitions(finalisedClassDefinitions, classDefinition, existing);
         }
 
-        RemoveNullValuesFromOutput(finalisedClassDefinitions);
+        RemoveNullFields(finalisedClassDefinitions);
 
         _logger.LogInformation("Created {@ClassCount} CSharp Class/es:", finalisedClassDefinitions.Count);
 
@@ -85,29 +82,24 @@ public class ConverterController : IConverterController
     public async Task WriteAsync(List<CSharpClass> classDefinitions, string outputPath) =>
        await File.WriteAllTextAsync(outputPath, classDefinitions.GetClassDefinitionsAsOutput());
 
-    private void RemoveNullValuesFromOutput(List<CSharpClass> finalisedClassDefinitions)
+    private void RemoveNullFields(List<CSharpClass> finalisedClassDefinitions)
     {
-        foreach (CSharpClass classDefinition in finalisedClassDefinitions)
-        {
-            List<int> fieldsToRemove = new List<int>();
-            for (int i = 0; i < classDefinition.Fields.Count; i++)
+        finalisedClassDefinitions.ForEach(classDefinition =>
+            classDefinition.Fields = classDefinition.Fields.Where(field =>
             {
-                if (classDefinition.Fields[i].Type == "null")
-                {
-                    _logger.LogInformation("Could not map Field: {@FieldName} as it has null value", $"{classDefinition.Name}.{classDefinition.Fields[i].Name}");
-                    fieldsToRemove.Add(i);
-                }
-            }
-
-            fieldsToRemove.ForEach(classDefinition.Fields.RemoveAt);
-        }
+                bool fieldNotNull = field.Type != "null";
+                if (!fieldNotNull)
+                    _logger.LogInformation("Could not generate class from Field: {@FieldName} as it has a null value", $"{classDefinition.Name}.{field.Name}");
+                
+                return fieldNotNull;
+            }).ToList());        
     }
 
     private static void UpdateTypesInFinalClassDefinitions(List<CSharpClass> finalisedClasses, CSharpClass current, CSharpClass existing)
     {
         foreach (CSharpClass classDef in finalisedClasses)
             foreach (CSharpField field in classDef.Fields)
-                field.Type = field.Type == current.Name //This works because we use json key to name the type
+                field.Type = field.Type == current.Name //This works because we use the json key to name the type
                     ? existing.Name
                     : field.Type;
     }
@@ -124,9 +116,9 @@ public class ConverterController : IConverterController
     }
 
     public CSharpClass? GetIfExists(List<CSharpClass> existingClasses, CSharpClass classToSearchFor) =>
-            existingClasses.FirstOrDefault(finalisedClass =>
-                String.Join(string.Empty, finalisedClass.Fields.Select(field => field.Name)) ==
-                String.Join(string.Empty, classToSearchFor.Fields.Select(field => field.Name))
-            );        
+        existingClasses.FirstOrDefault(finalisedClass =>
+            String.Join(string.Empty, finalisedClass.Fields.Select(field => field.Name)) ==
+            String.Join(string.Empty, classToSearchFor.Fields.Select(field => field.Name))
+        );        
 }
 

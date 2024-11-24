@@ -87,7 +87,7 @@ namespace JsonToClassConverter.UnitTests
             //Act
             List<CSharpClass> classDefinitions = new ConverterController(logger, new CommandLineOptions
             {
-                InputPath = "SampleData.json",
+                FilePath = "SampleData.json",
                 OutputPath = "OutputPath.cs"
             }, jsonService.Object)
             .Convert(json);

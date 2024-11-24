@@ -38,6 +38,7 @@ public class ConverterController : IConverterController
 
         try
         {
+            //ToDo: Fix if outer object is array (just take first element like we do later in parsing code)
             jsonProps = JsonDocument.Parse(json).RootElement.EnumerateObject();
         }
         catch (Exception ex)

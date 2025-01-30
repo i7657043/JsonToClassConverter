@@ -22,8 +22,6 @@ internal class ConsoleHostedService : IHostedService
         {
             Task.Run(async () =>
             {
-                string? appName = Assembly.GetExecutingAssembly().GetName().Name;
-
                 try
                 {
                     await _app.RunAsync();
@@ -40,7 +38,7 @@ internal class ConsoleHostedService : IHostedService
                 }
                 catch (JsonParsingException ex)
                 {
-                    _logger.LogCritical(ex.JsonParsingErrorMessage);
+                    _logger.LogCritical($"Process exited with Json Parsing exception: {ex.JsonParsingErrorMessage}");
 
                     Environment.Exit(-1);
                 }

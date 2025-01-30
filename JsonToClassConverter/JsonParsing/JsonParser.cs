@@ -24,8 +24,7 @@ namespace JsonToClassConverter.JsonParsing
                             model.Fields.Add(new JsonField(property.Name, GetValueType(property.Value.EnumerateArray().First().ValueKind)) { IsArray = true });
                             break;
                         }
-                        //We only pass the first indice of the array in as we only need to map the values to a new class once
-                        //No hanlding of using multiple types in the same array. Who would want to do that anyway?
+                        //We only pass the first indice of the array in as we only need to map the values to a new class once. No hanlding of polymorphic array
                         JsonClass childArray = ProcessJsonProps(new JsonClass(property.Name), property.Value.EnumerateArray().First().EnumerateObject());
                         childArray.IsArray = true;
                         model.Children.Add(childArray);

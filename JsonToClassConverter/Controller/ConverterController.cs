@@ -23,30 +23,41 @@ public class ConverterController : IConverterController
     {
         string json = await _jsonService.GetJsonFromSource(_commandLineOptions);
 
-        List<CSharpClass> classDefinitions = Convert(json);
-
-        classDefinitions.PrintOutput(_logger);
+        List<CSharpClass> classDefinitions = Convert(json);        
 
         await WriteAsync(classDefinitions, _commandLineOptions.OutputPath);
+
+        classDefinitions.PrintOutput(_logger);
     }    
 
     public List<CSharpClass> Convert(string json)
     {
         _logger.LogInformation("Processing JSON models");
 
-        JsonElement.ObjectEnumerator jsonProps = new JsonElement.ObjectEnumerator();
+        JsonElement.ObjectEnumerator? jsonProps = null;
 
         try
         {
-            //ToDo: Fix if outer object is array (just take first element like we do later in parsing code)
+            //check which has less nulls though
             jsonProps = JsonDocument.Parse(json).RootElement.EnumerateObject();
+        }
+        catch (InvalidOperationException) //Its probably an array
+        {
+            try
+            {
+                jsonProps = JsonDocument.Parse(json).RootElement.EnumerateArray().First().EnumerateObject();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
         catch (Exception ex)
         {
             throw new JsonParsingException($"Could not parse array or invalid JSON: {ex.Message}");
         }
 
-        JsonClass jsonModel = new JsonParser().ProcessJsonProps(new JsonClass("Outer"), jsonProps);
+        JsonClass jsonModel = new JsonParser().ProcessJsonProps(new JsonClass("Outer"), jsonProps.Value);
 
         _logger.LogInformation("Generating class definitions");
 

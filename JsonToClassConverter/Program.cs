@@ -19,7 +19,7 @@ internal class Program
                    CommandLineOptions commandLineOptions = new CommandLineOptions();
 
                    Parser.Default.ParseArguments<CommandLineOptions>(args)
-                   .WithParsed(options =>
+                   .WithParsed(args =>
                    {
                        Log.Logger = new LoggerConfiguration()
                        .MinimumLevel.Is(Serilog.Events.LogEventLevel.Information)
@@ -27,7 +27,7 @@ internal class Program
                        .WriteTo.Console(outputTemplate: "{Message}{NewLine}{Exception}")
                        .CreateLogger();
 
-                       SetPathArgs(commandLineOptions, options);
+                       SetPathArgs(commandLineOptions, args);
                    });
 
                    services.Configure((Action<ConsoleLifetimeOptions>)(options => options.SuppressStatusMessages = true));

@@ -20,7 +20,7 @@ public class JsonService : IJsonService
         {
             _logger.LogInformation($"Getting JSON from path: {commandLineOptions.FilePath}");
 
-            json = File.ReadAllText(commandLineOptions.FilePath).SanitiseJson();
+            json = File.ReadAllText(commandLineOptions.FilePath);
         }
         else if (!string.IsNullOrEmpty(commandLineOptions.JsonText))
         {
@@ -35,7 +35,7 @@ public class JsonService : IJsonService
             json = await GetAsync(commandLineOptions.Url);
         }
 
-        return json;
+        return json.SanitiseJson();
     }
 
     public async Task<string> GetAsync(string url)
